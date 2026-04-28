@@ -82,7 +82,7 @@ namespace _Project.Code._Bootstrap
 
         private void BindProjectile()
         {
-            ServiceLocator.Bind<IProjectileFactory, IConstruct>(new ProjectileFactory());
+            ServiceLocator.Bind<ProjectileFactory, IProjectileFactory, IConstruct>(new ProjectileFactory());
             ServiceLocator.Bind<IEcsSystem>(new ProjectileDeathSystem());
         }
 

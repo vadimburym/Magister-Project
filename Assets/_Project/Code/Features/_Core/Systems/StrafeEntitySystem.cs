@@ -13,11 +13,12 @@ namespace _ExampleProject.Code.Features._Core.Systems
         private const float EPS = 0.2f;
         private const string WALLS_MASK = "Walls";
 
-        private readonly EcsFilterInject<Inc<StrafeEntityState>> _filter = EcsWorlds.BT_STATES;
+        private readonly EcsFilterInject<Inc<StrafeEntityState, AgentEntity>> _filter = EcsWorlds.BT_STATES;
         private readonly EcsPoolInject<StrafeEntityState> _statePool = EcsWorlds.BT_STATES;
         private readonly EcsPoolInject<AgentEntity> _agentPool = EcsWorlds.BT_STATES;
         private readonly EcsPoolInject<UnityTransform> _transformPool;
         private readonly EcsPoolInject<UnityNavMeshAgent> _navAgentPool;
+        private readonly EcsWorldInject _world;
 
         public void Run(IEcsSystems systems)
         {
@@ -25,14 +26,37 @@ namespace _ExampleProject.Code.Features._Core.Systems
             {
                 ref var stateData = ref _statePool.Value.Get(entity);
                 var agentIndex = _agentPool.Value.Get(entity).AgentIndex;
+
+                if (!EcsEntityUtils.IsAlive(_world.Value, agentIndex))
+                    continue;
+
+                if (!_navAgentPool.Value.Has(agentIndex) || !_transformPool.Value.Has(agentIndex))
+                    continue;
+
                 var navAgent = _navAgentPool.Value.Get(agentIndex).Ref;
+                var selfTransform = _transformPool.Value.Get(agentIndex).Ref;
+
+                if (navAgent == null || selfTransform == null)
+                    continue;
+
                 if (stateData.IsReached)
                 {
                     stateData.TickTime += Time.deltaTime;
                     if (stateData.TickTime < stateData.StrafeCooldown)
                         continue;
+
                     stateData.TickTime = 0;
-                    var selfPosition = _transformPool.Value.Get(agentIndex).Ref.position;
+                    var selfPosition = selfTransform.position;
+
+                    if (!EcsEntityUtils.IsAlive(_world.Value, stateData.EntityIndex)
+                        || !_transformPool.Value.Has(stateData.EntityIndex)
+                        || _transformPool.Value.Get(stateData.EntityIndex).Ref == null)
+                    {
+                        navAgent.SetDestination(selfPosition);
+                        stateData.IsReached = true;
+                        continue;
+                    }
+
                     var entityPosition = _transformPool.Value.Get(stateData.EntityIndex).Ref.position;
 
                     if (TryGetStrafePoint(selfPosition, entityPosition, stateData.StrafeDistance, out Vector2 point))
@@ -62,6 +86,9 @@ namespace _ExampleProject.Code.Features._Core.Systems
 
             Vector2 dir = selfPos - targetPos;
             float sq = dir.sqrMagnitude;
+            if (sq <= Mathf.Epsilon)
+                return false;
+
             dir *= 1f / Mathf.Sqrt(sq);
             Vector2 perpA = new Vector2(-dir.y, dir.x);
             Vector2 perpB = new Vector2(dir.y, -dir.x);
@@ -85,6 +112,9 @@ namespace _ExampleProject.Code.Features._Core.Systems
             point = default;
             Vector2 delta = to - from;
             float dist = delta.magnitude;
+            if (dist <= Mathf.Epsilon)
+                return false;
+
             var hit = Physics2D.Raycast(from, delta / dist, dist, LayerMask.GetMask(WALLS_MASK));
             if (hit.collider != null) return false;
             point = to;

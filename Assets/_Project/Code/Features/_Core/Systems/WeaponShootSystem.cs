@@ -16,30 +16,42 @@ namespace _ExampleProject.Code.Features._Core.Systems
         private readonly EcsPoolInject<WeaponShootRequest> _requestPool;
         private readonly EcsPoolInject<Weapon> _weaponPool;
         private readonly EcsPoolInject<CombatTeam> _teamPool;
+        private readonly EcsPoolInject<UnityTransform> _transformPool;
 
         private WeaponsStaticData _weaponsStaticData;
-        private ProjectileFactory _projectileFactory;
+        private IProjectileFactory _projectileFactory;
 
         public void Init(IEcsSystems systems)
         {
-            _weaponsStaticData = ServiceLocator.Resolve<StaticDataService>().WeaponsStaticData;
-            _projectileFactory = ServiceLocator.Resolve<ProjectileFactory>();
+            var staticDataService = ServiceLocator.Resolve<StaticDataService>();
+            _weaponsStaticData = staticDataService?.WeaponsStaticData;
+            _projectileFactory = ServiceLocator.Resolve<IProjectileFactory>();
         }
 
         public void Run(IEcsSystems systems)
         {
+            if (_weaponsStaticData == null || _projectileFactory == null)
+                return;
+
             foreach (var entity in _filter.Value)
             {
                 ref var requestData = ref _requestPool.Value.Get(entity);
                 ref var weapon = ref _weaponPool.Value.Get(entity);
                 var weaponData = _weaponsStaticData.GetWeaponData(weapon.WeaponId);
+
+                if (weaponData == null)
+                    continue;
+
                 requestData.BurstTickTime += Time.deltaTime;
                 if (requestData.BurstTickTime < weaponData.BurstInterval)
                     continue;
 
                 requestData.BurstTickTime -= weaponData.BurstInterval;
-                var position = (Vector2)weapon.FirePointRef.position;
-                var baseDirection = (requestData.ShootPosition - position).normalized;
+
+                if (!TryGetShootPosition(entity, ref weapon, out var position))
+                    continue;
+
+                var baseDirection = GetShootDirection(position, requestData.ShootPosition, ref weapon);
                 var team = _teamPool.Value.Has(entity) ? _teamPool.Value.Get(entity).Value : CombatTeamId.Neutral;
 
                 int projectileCount = Mathf.Max(1, weaponData.ProjectilesPerBurst);
@@ -50,14 +62,48 @@ namespace _ExampleProject.Code.Features._Core.Systems
                 for (int i = 0; i < projectileCount; i++)
                 {
                     var angle = start + step * i;
-                    var direction = Quaternion.Euler(0f, 0f, angle) * baseDirection;
-                    _projectileFactory.Create(weaponData.ProjectileId, position, direction, team);
+                    var direction = (Vector2)(Quaternion.Euler(0f, 0f, angle) * baseDirection);
+                    _projectileFactory.Create(weaponData.ProjectileId, position, direction.normalized, team);
                 }
 
                 requestData.BurstCount += 1;
                 if (requestData.BurstCount >= weaponData.BurstsPerShot)
                     _requestPool.Value.Del(entity);
             }
+        }
+
+        private bool TryGetShootPosition(int entity, ref Weapon weapon, out Vector2 position)
+        {
+            if (weapon.FirePointRef != null)
+            {
+                position = weapon.FirePointRef.position;
+                return true;
+            }
+
+            if (_transformPool.Value.Has(entity) && _transformPool.Value.Get(entity).Ref != null)
+            {
+                position = _transformPool.Value.Get(entity).Ref.position;
+                return true;
+            }
+
+            position = default;
+            return false;
+        }
+
+        private static Vector2 GetShootDirection(Vector2 shootPosition, Vector2 targetPosition, ref Weapon weapon)
+        {
+            var delta = targetPosition - shootPosition;
+            if (delta.sqrMagnitude > 0.0001f)
+                return delta.normalized;
+
+            if (weapon.FirePointRef != null)
+            {
+                var firePointDirection = (Vector2)weapon.FirePointRef.right;
+                if (firePointDirection.sqrMagnitude > 0.0001f)
+                    return firePointDirection.normalized;
+            }
+
+            return Vector2.right;
         }
     }
 }

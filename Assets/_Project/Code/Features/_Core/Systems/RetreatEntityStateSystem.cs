@@ -5,7 +5,6 @@ using _Project.Infrastructure;
 using Leopotam.EcsLite;
 using Leopotam.EcsLite.Di;
 using UnityEngine;
-using UnityEngine.AI;
 using VadimBurym.DodBehaviourTree;
 
 namespace _ExampleProject.Code.Features._Core.Systems
@@ -15,11 +14,12 @@ namespace _ExampleProject.Code.Features._Core.Systems
         private const float EPS = 0.2f;
         private const string WALLS_MASK = "Walls";
         
-        private readonly EcsFilterInject<Inc<RetreatEntityState>> _filter = EcsWorlds.BT_STATES;
+        private readonly EcsFilterInject<Inc<RetreatEntityState, AgentEntity>> _filter = EcsWorlds.BT_STATES;
         private readonly EcsPoolInject<RetreatEntityState> _statePool = EcsWorlds.BT_STATES;
         private readonly EcsPoolInject<AgentEntity> _agentPool = EcsWorlds.BT_STATES;
         private readonly EcsPoolInject<UnityTransform> _transformPool;
         private readonly EcsPoolInject<UnityNavMeshAgent> _navAgentPool;
+        private readonly EcsWorldInject _world;
         
         public void Run(IEcsSystems systems)
         {
@@ -27,10 +27,30 @@ namespace _ExampleProject.Code.Features._Core.Systems
             {
                 ref var stateData = ref _statePool.Value.Get(entity);
                 var agentIndex = _agentPool.Value.Get(entity).AgentIndex;
+
+                if (!EcsEntityUtils.IsAlive(_world.Value, agentIndex))
+                    continue;
+
+                if (!_navAgentPool.Value.Has(agentIndex) || !_transformPool.Value.Has(agentIndex))
+                    continue;
+
                 var navAgent = _navAgentPool.Value.Get(agentIndex).Ref;
+                var selfTransform = _transformPool.Value.Get(agentIndex).Ref;
+
+                if (navAgent == null || selfTransform == null)
+                    continue;
+
                 if (stateData.IsReached)
                 {
-                    var selfPosition = _transformPool.Value.Get(agentIndex).Ref.position;
+                    if (!EcsEntityUtils.IsAlive(_world.Value, stateData.EntityIndex)
+                        || !_transformPool.Value.Has(stateData.EntityIndex)
+                        || _transformPool.Value.Get(stateData.EntityIndex).Ref == null)
+                    {
+                        stateData.StateStatus = NodeStatus.Failure;
+                        continue;
+                    }
+
+                    var selfPosition = selfTransform.position;
                     var entityPosition = _transformPool.Value.Get(stateData.EntityIndex).Ref.position;
                     if (TryGetRetreatPosition(selfPosition, entityPosition, stateData.RetreatDistance, out var retreatPosition))
                         navAgent.SetDestination(retreatPosition);
@@ -49,16 +69,21 @@ namespace _ExampleProject.Code.Features._Core.Systems
         private bool TryGetRetreatPosition(Vector2 selfPosition, Vector2 entityPosition, float retreatDistance, out Vector2 result)
         {
             result = default;
-            var direction = (selfPosition - entityPosition).normalized;
+            var direction = selfPosition - entityPosition;
+            if (direction.sqrMagnitude <= Mathf.Epsilon)
+                return false;
+
+            direction.Normalize();
             
             for (int i = 0; i < Rotations.Length; i++)
             {
                 Vector2 dir = Rotate(direction, Rotations[i]);
                 Vector2 candidate = selfPosition + dir * retreatDistance;
-                //if (!NavMesh.SamplePosition(candidate, out var hit, 0.01f, NavMesh.AllAreas))
-                //    continue;
                 Vector2 delta = candidate - selfPosition;
                 float dist = delta.magnitude;
+                if (dist <= Mathf.Epsilon)
+                    continue;
+
                 var wallHit = Physics2D.Raycast(selfPosition, delta / dist, dist, LayerMask.GetMask(WALLS_MASK));
                 if (wallHit.collider != null)
                     continue;

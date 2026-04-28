@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using _ExampleProject.Code.Features._Core.Components;
 using _ExampleProject.Code.Features._Core.Requests;
 using _Project.Code.Core.Keys;
 using _Project.Code.Features.Test;
@@ -13,6 +15,11 @@ namespace _ExampleProject.Code.Features.Enemy.Systems
         private readonly EcsFilterInject<Inc<DeathRequest, EnemyTag>> _filter;
         private readonly EcsPoolInject<EnemyTag> _enemyPool;
         private readonly EcsWorldInject _world;
+
+        private readonly EcsWorldInject _btStateWorld = EcsWorlds.BT_STATES;
+        private readonly EcsFilterInject<Inc<AgentEntity>> _btStateFilter = EcsWorlds.BT_STATES;
+        private readonly EcsPoolInject<AgentEntity> _btAgentPool = EcsWorlds.BT_STATES;
+        private readonly List<int> _btStatesToDelete = new();
         
         private IMemoryPoolService _memoryPoolService;
         
@@ -25,10 +32,32 @@ namespace _ExampleProject.Code.Features.Enemy.Systems
         {
             foreach (var entity in _filter.Value)
             {
+                RemoveBehaviourTreeStatesForAgent(entity);
+
                 ref var enemy = ref _enemyPool.Value.Get(entity);
                 _memoryPoolService.UnspawnGameObject(MemoryPoolId.Enemy, enemy.GameObjectRef);
                 _world.Value.DelEntity(entity);
             }
+        }
+
+        private void RemoveBehaviourTreeStatesForAgent(int agentEntity)
+        {
+            _btStatesToDelete.Clear();
+
+            foreach (var stateEntity in _btStateFilter.Value)
+            {
+                if (_btAgentPool.Value.Get(stateEntity).AgentIndex == agentEntity)
+                    _btStatesToDelete.Add(stateEntity);
+            }
+
+            for (int i = 0; i < _btStatesToDelete.Count; i++)
+            {
+                var stateEntity = _btStatesToDelete[i];
+                if (EcsEntityUtils.IsAlive(_btStateWorld.Value, stateEntity))
+                    _btStateWorld.Value.DelEntity(stateEntity);
+            }
+
+            _btStatesToDelete.Clear();
         }
     }
 }

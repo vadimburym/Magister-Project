@@ -25,8 +25,9 @@ namespace _ExampleProject.Code.Features.Enemy.Factory
         public void Construct()
         {
             _memoryPoolService = ServiceLocator.Resolve<IMemoryPoolService>();
-            _enemyStaticData = ServiceLocator.Resolve<StaticDataService>().EnemyStaticData;
-            _weaponsStaticData = ServiceLocator.Resolve<StaticDataService>().WeaponsStaticData;
+            var staticData = ServiceLocator.Resolve<StaticDataService>();
+            _enemyStaticData = staticData.EnemyStaticData;
+            _weaponsStaticData = staticData.WeaponsStaticData;
             _world = EcsWorlds.GetWorld(EcsWorlds.DEFAULT);
         }
 
@@ -60,15 +61,19 @@ namespace _ExampleProject.Code.Features.Enemy.Factory
                 enemyData.BrainTickInterval,
                 Random.Range(0f, enemyData.BrainTickInterval));
             _world.GetPool<PlayerVisibility>().Add(entity).Setup(
-                enemyData.DetectDistance * enemyData.DetectDistance,
-                enemyData.HuntingDistance * enemyData.HuntingDistance,
                 enemyData.PlayerVisibilitySensorTickInterval,
-                Random.Range(0f, enemyData.PlayerVisibilitySensorTickInterval));
+                Random.Range(0f, enemyData.PlayerVisibilitySensorTickInterval),
+                enemyData.DetectDistance * enemyData.DetectDistance,
+                enemyData.HuntingDistance * enemyData.HuntingDistance);
 
             var weaponMagazineSize = _weaponsStaticData.GetWeaponData(enemyData.Weapon).MaxMagazineSize;
             var startMagazine = Mathf.Min(weaponMagazineSize, enemyData.InitAmmo);
             var totalAmmo = Mathf.Max(0, enemyData.InitAmmo - startMagazine);
-            _world.GetPool<Weapon>().Add(entity).Setup(enemyFacade.FirePoint, enemyData.Weapon, totalAmmo, startMagazine);
+            _world.GetPool<Weapon>().Add(entity).Setup(
+                enemyFacade.FirePoint != null ? enemyFacade.FirePoint : enemyFacade.transform,
+                enemyData.Weapon,
+                totalAmmo,
+                startMagazine);
             _world.GetPool<Health>().Add(entity) = new Health { MaxValue = enemyData.MaxHealth, CurrentValue = enemyData.MaxHealth };
             _world.GetPool<Armor>().Add(entity).Value = enemyData.Armour;
             _world.GetPool<CombatTeam>().Add(entity).Value = CombatTeamId.Enemy;

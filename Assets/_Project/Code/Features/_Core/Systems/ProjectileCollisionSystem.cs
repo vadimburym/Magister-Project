@@ -27,6 +27,7 @@ namespace _ExampleProject.Code.Features._Core.Systems
             foreach (var entity in _filter.Value)
             {
                 ref var eventData = ref _eventPool.Value.Get(entity);
+
                 if (!_projPool.Value.Has(eventData.Entity))
                     continue;
 
@@ -38,28 +39,51 @@ namespace _ExampleProject.Code.Features._Core.Systems
                     ? _damagePool.Value.Get(projectileEntity).Value
                     : 0;
 
-                bool shouldDestroyProjectile = true;
+                if (TryResolveTarget(eventData.CollisionRef, out var targetEntity, out var targetTeam))
+                {
+                    var isFriendlyFire = projectileTeam != CombatTeamId.Neutral && projectileTeam == targetTeam;
 
-                if (eventData.CollisionRef.TryGetComponent(out PlayerFacade playerFacade))
-                {
-                    var targetEntity = playerFacade.EcsEntity.Index;
-                    if (projectileTeam == CombatTeamId.Player)
-                        shouldDestroyProjectile = false;
-                    else
-                        ApplyDamage(targetEntity, projectileDamage);
-                }
-                else if (eventData.CollisionRef.TryGetComponent(out EnemyFacade enemyFacade))
-                {
-                    var targetEntity = enemyFacade.EcsEntity.Index;
-                    if (projectileTeam == CombatTeamId.Enemy)
-                        shouldDestroyProjectile = false;
-                    else
-                        ApplyDamage(targetEntity, projectileDamage);
+                    if (isFriendlyFire)
+                        continue;
+
+                    ApplyDamage(targetEntity, projectileDamage);
                 }
 
-                if (shouldDestroyProjectile && !_deathRequestPool.Value.Has(projectileEntity))
-                    _deathRequestPool.Value.Add(projectileEntity);
+                AddDeathRequest(projectileEntity);
             }
+        }
+
+        private bool TryResolveTarget(GameObject collisionRef, out int entity, out CombatTeamId team)
+        {
+            entity = default;
+            team = CombatTeamId.Neutral;
+
+            if (collisionRef == null)
+                return false;
+
+            var playerFacade = collisionRef.GetComponent<PlayerFacade>();
+            if (playerFacade == null)
+                playerFacade = collisionRef.GetComponentInParent<PlayerFacade>();
+
+            if (playerFacade != null && playerFacade.EcsEntity != null)
+            {
+                entity = playerFacade.EcsEntity.Index;
+                team = CombatTeamId.Player;
+                return true;
+            }
+
+            var enemyFacade = collisionRef.GetComponent<EnemyFacade>();
+            if (enemyFacade == null)
+                enemyFacade = collisionRef.GetComponentInParent<EnemyFacade>();
+
+            if (enemyFacade != null && enemyFacade.EcsEntity != null)
+            {
+                entity = enemyFacade.EcsEntity.Index;
+                team = CombatTeamId.Enemy;
+                return true;
+            }
+
+            return false;
         }
 
         private void ApplyDamage(int entity, int rawDamage)
@@ -70,9 +94,16 @@ namespace _ExampleProject.Code.Features._Core.Systems
             ref var health = ref _healthPool.Value.Get(entity);
             int armor = _armorPool.Value.Has(entity) ? _armorPool.Value.Get(entity).Value : 0;
             int finalDamage = Mathf.Max(1, rawDamage - armor);
-            health.CurrentValue -= finalDamage;
 
-            if (health.CurrentValue <= 0 && !_deathRequestPool.Value.Has(entity))
+            health.CurrentValue = Mathf.Max(0, health.CurrentValue - finalDamage);
+
+            if (health.CurrentValue <= 0)
+                AddDeathRequest(entity);
+        }
+
+        private void AddDeathRequest(int entity)
+        {
+            if (!_deathRequestPool.Value.Has(entity))
                 _deathRequestPool.Value.Add(entity);
         }
     }
