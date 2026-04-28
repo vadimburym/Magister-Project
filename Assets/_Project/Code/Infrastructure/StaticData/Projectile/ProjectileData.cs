@@ -8,6 +8,8 @@ namespace _ExampleProject.Code.Infrastructure.StaticData.Projectile
     {
         public ProjectileId Id;
         public MemoryPoolId PrefabId;
-        public float MoveSpeed;
+        public float MoveSpeed = 20f;
+        public int Damage = 10;
+        public float LifeTime = 2f;
     }
 }

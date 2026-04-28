@@ -7,5 +7,6 @@ namespace _ExampleProject.Code.Features.Player.Facade
     {
         public EcsEntity EcsEntity;
         public Rigidbody2D Rigidbody;
+        public Transform FirePoint;
     }
 }

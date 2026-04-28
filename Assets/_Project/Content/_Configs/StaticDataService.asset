@@ -18,3 +18,5 @@ MonoBehaviour:
   PlayerStaticData: {fileID: 11400000, guid: 94c95de94c6705f43833fda3c68d568e, type: 2}
   WeaponsStaticData: {fileID: 11400000, guid: 520a847f1bb907843a31be929a68d5f1, type: 2}
   ProjectilesStaticData: {fileID: 11400000, guid: 903445076e06c1b41ab84ec0606f1e08, type: 2}
+  ResourcesStaticData: {fileID: 11400000, guid: 377cc07b4f923c944bc7af7278046617, type: 2}
+  GameLoopStaticData: {fileID: 11400000, guid: 4d82b364d8e9b024a81b16d439782670, type: 2}

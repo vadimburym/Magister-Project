@@ -16,3 +16,5 @@ MonoBehaviour:
   - Id: 1
     PrefabId: 3
     MoveSpeed: 7
+    Damage: 10
+    LifeTime: 2

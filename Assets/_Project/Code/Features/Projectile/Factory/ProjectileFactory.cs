@@ -17,33 +17,36 @@ namespace _ExampleProject.Code.Features.Projectile.Factory
         private ProjectilesStaticData _projectileStaticData;
         private IMemoryPoolService _memoryPoolService;
         private EcsWorld _world;
-        
+
         public void Construct()
         {
             _world = EcsWorlds.GetWorld(EcsWorlds.DEFAULT);
             _projectileStaticData = ServiceLocator.Resolve<StaticDataService>().ProjectilesStaticData;
             _memoryPoolService = ServiceLocator.Resolve<IMemoryPoolService>();
         }
-        
+
         public int Create(ProjectileId id, Vector2 position, Vector2 direction)
+        {
+            return Create(id, position, direction, CombatTeamId.Neutral);
+        }
+
+        public int Create(ProjectileId id, Vector2 position, Vector2 direction, CombatTeamId team)
         {
             var proj = _world.NewEntity();
             var projData = _projectileStaticData.GetProjectileData(id);
             var projFacade = _memoryPoolService.SpawnGameObject<ProjectileFacade>(projData.PrefabId);
-            
+
             projFacade.EcsEntity.Construct(_world, proj);
             projFacade.EcsCollider.Construct(EcsWorlds.GetWorld(EcsWorlds.EVENTS));
             projFacade.transform.position = position;
-            
-            _world.GetPool<UnityRigidbody>().Add(proj).Ref
-                = projFacade.Rigidbody;
-            _world.GetPool<Movement>().Add(proj).Setup(
-                direction: direction,
-                moveSpeed: projData.MoveSpeed);
-            _world.GetPool<ProjectileTag>().Add(proj).Setup(
-                projectileId: id,
-                gameObjectRef: projFacade.gameObject);
-            
+            projFacade.Rigidbody.linearVelocity = Vector2.zero;
+
+            _world.GetPool<UnityRigidbody>().Add(proj).Ref = projFacade.Rigidbody;
+            _world.GetPool<Movement>().Add(proj).Setup(direction, projData.MoveSpeed);
+            _world.GetPool<ProjectileTag>().Add(proj).Setup(id, projFacade.gameObject);
+            _world.GetPool<CombatTeam>().Add(proj).Value = team;
+            _world.GetPool<ProjectileDamage>().Add(proj).Value = projData.Damage;
+            _world.GetPool<ProjectileLifeTime>().Add(proj).Remaining = projData.LifeTime;
             return proj;
         }
     }

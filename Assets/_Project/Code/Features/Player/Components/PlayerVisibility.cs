@@ -21,7 +21,7 @@ namespace _ExampleProject.Code.Features.Player.Components
             DetectSqrDistance = detectSqrDistance;
             HuntingSqrDistance = huntingSqrDistance;
         }
-        
+
         public void Reset()
         {
             IsPlayerDetected = false;

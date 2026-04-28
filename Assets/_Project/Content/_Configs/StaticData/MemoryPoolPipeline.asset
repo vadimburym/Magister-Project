@@ -25,3 +25,11 @@ MonoBehaviour:
     TransformId: 1
     Asset: {fileID: 8055880438897396821, guid: fc1bdd548932ce349bb287aa332e2ab4, type: 3}
     InitialCount: 10
+  - PoolId: 4
+    TransformId: 1
+    Asset: {fileID: 5113806836484480075, guid: 8c83f651eea32624e9dd3e9a2ac08f36, type: 3}
+    InitialCount: 3
+  - PoolId: 5
+    TransformId: 1
+    Asset: {fileID: 5113806836484480075, guid: 3f15c91f7ca1f5342ad2e035db02c20f, type: 3}
+    InitialCount: 3

@@ -9,6 +9,8 @@ using _ExampleProject.Code.Infrastructure.InputService;
 using _ExampleProject.Code.Infrastructure.StaticData.BehaviourTree;
 using _Project.Code.Core.Abstractions.Contracts;
 using _Project.Code.Features.Locale.MemoryPool.Systems;
+using _Project.Code.Features.Resources.Factory;
+using _Project.Code.Features.Resources.Systems;
 using _Project.Code.Infrastructure;
 using _Project.Infrastructure;
 using Infrastructure.MemoryPool.Service;
@@ -21,7 +23,7 @@ namespace _Project.Code._Bootstrap
     public sealed class GameInstaller : ScriptableObject
     {
         [SerializeField] private StaticDataService _staticDataService;
-        
+
         public void InstallBindings()
         {
             BindInfrastructure();
@@ -29,8 +31,10 @@ namespace _Project.Code._Bootstrap
             BindEnemies();
             BindPlayer();
             BindProjectile();
+            BindResources();
+            BindGameLoop();
         }
-        
+
         private void BindInfrastructure()
         {
             ServiceLocator.Bind<StaticDataService>(_staticDataService);
@@ -39,10 +43,12 @@ namespace _Project.Code._Bootstrap
             ServiceLocator.Bind<IConstruct, IWarmUp>(new MemoryPoolWarmUpSystem());
             ServiceLocator.Bind<IConstruct, IInit>(new BehaviourTreeConstructSystem());
         }
-        
+
         private void BindEcsCore()
         {
             ServiceLocator.Bind<IEcsSystem>(new InputMoveSystem());
+            ServiceLocator.Bind<IEcsSystem>(new PlayerAimSystem());
+            ServiceLocator.Bind<IEcsSystem>(new PlayerShootInputSystem());
             ServiceLocator.Bind<IEcsSystem>(new AiBrainTickSystem());
             ServiceLocator.Bind<IEcsSystem>(new PatrolStateSystem());
             ServiceLocator.Bind<IEcsSystem>(new ChaseEntityStateSystem());
@@ -54,10 +60,11 @@ namespace _Project.Code._Bootstrap
             ServiceLocator.Bind<IEcsSystem>(new WeaponReloadSystem());
             ServiceLocator.Bind<IEcsSystem>(new WeaponShootSystem());
             ServiceLocator.Bind<IEcsSystem>(new ProjectileCollisionSystem());
+            ServiceLocator.Bind<IEcsSystem>(new ProjectileLifetimeSystem());
             ServiceLocator.Bind<IEcsSystem>(new EventWorldCleanUpSystem());
             ServiceLocator.Bind<ILateTick, IInit>(new CameraFollowSystem());
         }
-        
+
         private void BindEnemies()
         {
             ServiceLocator.Bind<IEnemyFactory, IConstruct>(new EnemyFactory());
@@ -72,11 +79,22 @@ namespace _Project.Code._Bootstrap
             ServiceLocator.Bind<IEcsSystem>(new PlayerVisibilitySensorSystem());
             ServiceLocator.Bind<IEcsSystem>(new PlayerDeathSystem());
         }
-        
+
         private void BindProjectile()
         {
             ServiceLocator.Bind<IProjectileFactory, IConstruct>(new ProjectileFactory());
             ServiceLocator.Bind<IEcsSystem>(new ProjectileDeathSystem());
+        }
+
+        private void BindResources()
+        {
+            ServiceLocator.Bind<IResourceFactory, IConstruct>(new ResourceFactory());
+            ServiceLocator.Bind<IEcsSystem>(new ResourcePickupSystem());
+        }
+
+        private void BindGameLoop()
+        {
+            ServiceLocator.Bind<IConstruct, ITick>(new GameLoopSystem());
         }
     }
 }

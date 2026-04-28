@@ -5,6 +5,8 @@ namespace _Project.Code.Core.Keys
         None = 0,
         Enemy = 1,
         Player = 2,
-        Bullet = 3
+        Bullet = 3,
+        AmmoPickup = 4,
+        HealthPickup = 5
     }
 }
