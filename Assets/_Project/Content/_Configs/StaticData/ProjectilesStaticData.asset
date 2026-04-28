@@ -15,6 +15,6 @@ MonoBehaviour:
   Projectiles:
   - Id: 1
     PrefabId: 3
-    MoveSpeed: 15
+    MoveSpeed: 30
     Damage: 10
     LifeTime: 2

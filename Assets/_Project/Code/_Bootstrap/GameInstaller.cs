@@ -33,6 +33,8 @@ namespace _Project.Code._Bootstrap
             BindProjectile();
             BindResources();
             BindGameLoop();
+            BindAudio();
+            BindUi();
         }
 
         private void BindInfrastructure()
@@ -94,7 +96,17 @@ namespace _Project.Code._Bootstrap
 
         private void BindGameLoop()
         {
-            ServiceLocator.Bind<IConstruct, ITick>(new GameLoopSystem());
+            ServiceLocator.Bind<IConstruct, ITick, ICleanUp>(new GameLoopSystem());
+        }
+
+        private void BindAudio()
+        {
+            ServiceLocator.Bind<IConstruct, ITick, ICleanUp>(new DynamicSoundtrackSystem());
+        }
+
+        private void BindUi()
+        {
+            ServiceLocator.Bind<IConstruct, ITick, ICleanUp>(new PlayerHudSystem());
         }
     }
 }

@@ -1,3 +1,4 @@
+using AdaptiveDifficulty.Runtime;
 using _ExampleProject.Code.Features._Core.Behaviours;
 using _ExampleProject.Code.Features._Core.Requests;
 using _ExampleProject.Code.Features.Enemy.Facade;
@@ -46,7 +47,9 @@ namespace _ExampleProject.Code.Features._Core.Systems
                     if (isFriendlyFire)
                         continue;
 
-                    ApplyDamage(targetEntity, projectileDamage);
+                    int appliedDamage = ApplyDamage(targetEntity, projectileDamage);
+                    if (appliedDamage > 0)
+                        ProjectAdaptiveDifficultyBootstrap.Instance?.ReportDamage(projectileTeam, targetTeam, appliedDamage);
                 }
 
                 AddDeathRequest(projectileEntity);
@@ -86,19 +89,23 @@ namespace _ExampleProject.Code.Features._Core.Systems
             return false;
         }
 
-        private void ApplyDamage(int entity, int rawDamage)
+        private int ApplyDamage(int entity, int rawDamage)
         {
             if (!_healthPool.Value.Has(entity))
-                return;
+                return 0;
 
             ref var health = ref _healthPool.Value.Get(entity);
+            int previousHealth = health.CurrentValue;
             int armor = _armorPool.Value.Has(entity) ? _armorPool.Value.Get(entity).Value : 0;
             int finalDamage = Mathf.Max(1, rawDamage - armor);
 
             health.CurrentValue = Mathf.Max(0, health.CurrentValue - finalDamage);
+            int appliedDamage = Mathf.Max(0, previousHealth - health.CurrentValue);
 
             if (health.CurrentValue <= 0)
                 AddDeathRequest(entity);
+
+            return appliedDamage;
         }
 
         private void AddDeathRequest(int entity)

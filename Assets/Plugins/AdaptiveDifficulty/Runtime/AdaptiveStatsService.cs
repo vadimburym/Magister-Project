@@ -14,6 +14,9 @@ namespace AdaptiveDifficulty.Runtime
         private float _ammoPickupRateEma;
         private float _healthPickupRateEma;
 
+        private int _totalShots;
+        private int _totalHits;
+
         public AdaptiveStatsService(AdaptiveDifficultySettings settings)
         {
             _settings = settings;
@@ -22,7 +25,6 @@ namespace AdaptiveDifficulty.Runtime
         public void OnFrameSamples(AdaptiveFrameTelemetry frame, float dt)
         {
             float safeDt = Mathf.Max(dt, 1e-6f);
-
             float killsRate = frame.Kills / safeDt;
             float damageDealtRate = frame.DamageDealt / safeDt;
             float damageTakenRate = frame.DamageTaken / safeDt;
@@ -43,9 +45,12 @@ namespace AdaptiveDifficulty.Runtime
             _ammoPickupRateEma = Mathf.Lerp(_ammoPickupRateEma, ammoPickupRate, pickupAlpha);
             _healthPickupRateEma = Mathf.Lerp(_healthPickupRateEma, healthPickupRate, pickupAlpha);
 
-            if (frame.Shots > 0)
+            _totalShots += Mathf.Max(0, frame.Shots);
+            _totalHits += Mathf.Max(0, frame.Hits);
+
+            if (_totalShots > 0)
             {
-                float accuracySample = (float)frame.Hits / frame.Shots;
+                float accuracySample = Mathf.Clamp01((float)_totalHits / _totalShots);
                 _accuracyEma = Mathf.Lerp(_accuracyEma, accuracySample, accuracyAlpha);
             }
         }
@@ -62,20 +67,15 @@ namespace AdaptiveDifficulty.Runtime
                 healthPickupRate: _healthPickupRateEma);
         }
 
-        public float NormalizedKills() =>
-            Mathf.Clamp01(_killsEma / Mathf.Max(_settings.NormalizedKillsPerSecond, 1e-6f));
+        public float NormalizedKills() => Mathf.Clamp01(_killsEma / Mathf.Max(_settings.NormalizedKillsPerSecond, 1e-6f));
 
-        public float NormalizedDamageDealt() =>
-            Mathf.Clamp01(_damageDealtEma / Mathf.Max(_settings.NormalizedDamageDealtPerSecond, 1e-6f));
+        public float NormalizedDamageDealt() => Mathf.Clamp01(_damageDealtEma / Mathf.Max(_settings.NormalizedDamageDealtPerSecond, 1e-6f));
 
-        public float NormalizedDamageTaken() =>
-            Mathf.Clamp01(_damageTakenEma / Mathf.Max(_settings.NormalizedDamageTakenPerSecond, 1e-6f));
+        public float NormalizedDamageTaken() => Mathf.Clamp01(_damageTakenEma / Mathf.Max(_settings.NormalizedDamageTakenPerSecond, 1e-6f));
 
-        public float NormalizedAccuracy() =>
-            Mathf.Clamp01(_accuracyEma);
+        public float NormalizedAccuracy() => Mathf.Clamp01(_accuracyEma);
 
-        public float NormalizedCombo() =>
-            Mathf.Clamp01(_comboEma / Mathf.Max(_settings.NormalizedCombo, 1e-6f));
+        public float NormalizedCombo() => Mathf.Clamp01(_comboEma / Mathf.Max(_settings.NormalizedCombo, 1e-6f));
 
         public float NormalizedPickups()
         {

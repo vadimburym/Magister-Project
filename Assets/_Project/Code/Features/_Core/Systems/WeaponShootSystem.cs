@@ -1,3 +1,4 @@
+using AdaptiveDifficulty.Runtime;
 using _ExampleProject.Code.Features._Core.Components;
 using _ExampleProject.Code.Features.Projectile.Factory;
 using _ExampleProject.Code.Infrastructure.StaticData.Weapons;
@@ -64,6 +65,7 @@ namespace _ExampleProject.Code.Features._Core.Systems
                     var angle = start + step * i;
                     var direction = (Vector2)(Quaternion.Euler(0f, 0f, angle) * baseDirection);
                     _projectileFactory.Create(weaponData.ProjectileId, position, direction.normalized, team);
+                    ProjectAdaptiveDifficultyBootstrap.Instance?.ReportShot(team);
                 }
 
                 requestData.BurstCount += 1;

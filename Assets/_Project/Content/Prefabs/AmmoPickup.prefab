@@ -29,8 +29,8 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: -1.25, y: 1.38, z: 0}
-  m_LocalScale: {x: 4, y: 4, z: 1}
-  m_ConstrainProportionsScale: 0
+  m_LocalScale: {x: 1, y: 1, z: 0.25}
+  m_ConstrainProportionsScale: 1
   m_Children:
   - {fileID: 4831849859484395429}
   m_Father: {fileID: 0}
@@ -127,7 +127,6 @@ GameObject:
   - component: {fileID: 4831849859484395429}
   - component: {fileID: 6569057017355578695}
   - component: {fileID: 4509987699085181458}
-  - component: {fileID: 5599089406443017410}
   m_Layer: 0
   m_Name: WeightText
   m_TagString: Untagged
@@ -293,11 +292,3 @@ MonoBehaviour:
   m_hasFontAssetChanged: 0
   m_renderer: {fileID: 6569057017355578695}
   m_maskType: 0
---- !u!33 &5599089406443017410
-MeshFilter:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8682422261292510793}
-  m_Mesh: {fileID: 0}

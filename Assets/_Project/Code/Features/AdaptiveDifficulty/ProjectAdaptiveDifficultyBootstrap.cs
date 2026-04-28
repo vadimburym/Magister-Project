@@ -1,4 +1,4 @@
-using AdaptiveDifficulty.Runtime;
+using _Project.Code.Features.Test;
 using UnityEngine;
 
 namespace AdaptiveDifficulty.Runtime
@@ -52,6 +52,21 @@ namespace AdaptiveDifficulty.Runtime
         public void CommitLevel()
         {
             _controller?.CommitLevel();
+        }
+
+        public void ReportShot(CombatTeamId shooterTeam)
+        {
+            _telemetrySource?.ReportShot(shooterTeam);
+        }
+
+        public void ReportDamage(CombatTeamId sourceTeam, CombatTeamId targetTeam, int damage)
+        {
+            _telemetrySource?.ReportDamage(sourceTeam, targetTeam, damage);
+        }
+
+        public void ReportEnemyKilled()
+        {
+            _telemetrySource?.ReportEnemyKilled();
         }
 
         public void ReportPickup(AdaptivePickupType pickupType)
